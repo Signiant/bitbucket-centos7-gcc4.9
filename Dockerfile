@@ -1,5 +1,5 @@
-FROM signiant/docker-jenkins-centos-base:centos7-java8
-MAINTAINER devops@signiant.com
+FROM bitbucket-centos
+MAINTAINER sre@signiant.com
 
 ENV BUILD_USER bldmgr
 ENV BUILD_USER_GROUP users
@@ -27,12 +27,15 @@ COPY yum-packages.list /tmp/yum.packages.list
 RUN chmod +r /tmp/yum.packages.list
 RUN yum install -y -q `cat /tmp/yum.packages.list`
 
-# Install c/c++ development tools
-RUN yum install -y centos-release-scl 
-RUN yum install -y devtoolset-9
-RUN scl enable devtoolset-9 bash
-RUN printf "\nsource scl_source enable devtoolset-9\n" >> /root/.bashrc
-RUN printf "\nsource scl_source enable devtoolset-9\n" >> /home/$BUILD_USER/.bashrc
+# Install gcc 4.9 
+RUN cd /tmp \
+  && curl ftp://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-4.9.2/gcc-4.9.2.tar.bz2 -O \
+  && tar xvfj gcc-4.9.2.tar.bz2 \ 
+  && cd gcc-4.9.2 \
+  && ./contrib/download_prerequisites \
+  && ./configure --disable-multilib --enable-languages=c,c++ \
+  && make -j8 \
+  && make install
 
 RUN mv /usr/bin/cmake /usr/bin/cmake2
 RUN mv /usr/bin/ccmake /usr/bin/ccmake2
@@ -73,20 +76,9 @@ RUN cd /tmp && \
     make && \
     make install
 
-# Install Python 2.7.X for Umpire
-RUN cd /tmp && \
-    wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tgz && \
-    tar xvfz Python-3.12.0.tgz && \
-    cd Python-3.12.0 && \
-    ./configure --prefix=/usr/local && \
-    make && \
-    make altinstall
-
-RUN python3.12 -m pip install --upgrade pip
-
-ENV UMPIRE_VERSION 0.5.5
+ENV UMPIRE_VERSION 0.6.5
 # Install umpire
-RUN python3.12 -m pip install umpire==${UMPIRE_VERSION}
+RUN pip3 install umpire==${UMPIRE_VERSION}
 
 # upgrade npm, node and install phantomjs
 RUN npm install -g n
