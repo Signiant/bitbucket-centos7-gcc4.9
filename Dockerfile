@@ -1,4 +1,4 @@
-FROM bitbucket-centos
+FROM signiant/bitbucket-centos:centos7
 MAINTAINER sre@signiant.com
 
 ENV BUILD_USER bldmgr
